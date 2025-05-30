@@ -4,3 +4,4 @@ cmake-build-*/
 build*/
 *.zip
 .DS_Store
+src/main.c
