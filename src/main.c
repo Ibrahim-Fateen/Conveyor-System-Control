@@ -13,6 +13,8 @@
 
 #define INPUT_CAPTURE_PIN GPIO_A, 0
 
+#define PWM_PIN GPIO_A, 6
+
 #define TRUE 1
 #define FALSE 0
 
@@ -85,6 +87,9 @@ void init_GPIO(void) {
 
     Gpio_Init(INPUT_CAPTURE_PIN, GPIO_AF, GPIO_PUSH_PULL);
     Gpio_Set_AF(INPUT_CAPTURE_PIN, AF_TIM_1_2);
+
+    Gpio_Init(PWM_PIN, GPIO_AF, GPIO_PUSH_PULL);
+    Gpio_Set_AF(PWM_PIN, AF_TIM_3_5);
 }
 
 void init_EXTI(void) {
