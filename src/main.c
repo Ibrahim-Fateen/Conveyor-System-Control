@@ -10,7 +10,10 @@
 
 #define OBJ_PIN GPIO_A, 9
 
-int emergency = 0;
+#define TRUE 1
+#define FALSE 0
+
+int emergency = FALSE;
 
 void init_RCC(void);
 void init_GPIO(void);
@@ -123,7 +126,7 @@ void display_message(char *message, uint8 row, uint8 col) {
 // emergency button interrupt request handler
 void EXTI2_IRQHandler(void) {
     if (EXTI_REGISTERS->EXTI_PR & (1 << 2)) {
-        emergency = 1;
+        emergency = TRUE;
         EXTI_ClearPending(2);
     }
 }
