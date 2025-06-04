@@ -7,7 +7,7 @@
 void Timer2_InputCapture_Init(uint8 Channel, uint8 EdgeSelect,uint16 Prescaler)
 {
     // 2. Basic timer config
-    TIM2->PSC = 16000-1; // Prescaler (adjust for slower signal)
+    TIM2->PSC = 16-1; // Prescaler (adjust for slower signal)
     TIM2->EGR |= (0x1UL<<(0U));
     TIM2->SR &= ~((0x1UL<<(0U)));
 

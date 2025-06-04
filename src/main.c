@@ -24,7 +24,7 @@ void init_EXTI(void);
 
 void poll_for_object(uint32 *counter);
 
-float time_calc(uint16 firstEdge, uint16 secondEdge , uint16 firstCaptured);
+float time_calc(void);
 
 void display_message(char *message, uint8 row, uint8 col);
 
@@ -55,6 +55,13 @@ int main(void) {
             poll_for_object(&obj_count);
             int_to_str(obj_count, buffer);
             display_message(buffer, 1, 9);
+
+            float time_s = time_calc();
+            if (time_s > 0) {
+                char time_buffer[16];
+                int_to_str((uint32)(time_s * 1000), time_buffer); // Convert to milliseconds
+                display_message(time_buffer, 0, 0); // Overwrite first line
+            }
         } else {
             display_message("", 0, 0);
         }
@@ -99,14 +106,18 @@ void poll_for_object(uint32 *counter) {
     last_pin_state = current_pin_state;
 }
 
-float time_calc(uint16 firstEdge, uint16 secondEdge, uint16 firstCaptured) {
+float time_calc(void) {
+    static uint16 firstEdge = 0;
+    static uint16 firstCaptured = 0;
+    static float time_s = 0;
+
     uint16 captured = Timer2_ReadCapturedValue(TIM_CHANNEL_1);
 
     if (!firstCaptured) {
-        firstEdge = Timer2_ReadCapturedValue(TIM_CHANNEL_1);
+        firstEdge = captured;
         firstCaptured = 1;
     } else {
-        secondEdge = Timer2_ReadCapturedValue(TIM_CHANNEL_1);
+        uint16 secondEdge = captured;
 
         uint16 pulseWidth;
         if (secondEdge >= firstEdge)
@@ -114,14 +125,11 @@ float time_calc(uint16 firstEdge, uint16 secondEdge, uint16 firstCaptured) {
         else
             pulseWidth = (0xFFFF - firstEdge) + secondEdge + 1;
 
-        float time_us = pulseWidth;
-        float time_ms = time_us / 1000.0;
-        float time_s = time_us / 1e6;
+        time_s = pulseWidth / 1e6;
 
         firstCaptured = 0;
-
-        return time_s ;
     }
+    return time_s ;
 }
 
 void int_to_str(uint32 num, char *buffer)
