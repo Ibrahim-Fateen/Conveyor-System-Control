@@ -8,11 +8,15 @@
 #define EMERGENCY_BUTTON GPIO_A, 2
 #define RESET_BUTTON GPIO_A, 3
 
+#define OBJ_PIN GPIO_A, 9
+
 int emergency = 0;
 
 void init_RCC(void);
 void init_GPIO(void);
 void init_EXTI(void);
+
+void poll_for_object(uint32 *counter);
 
 void display_message(char *message, uint8 row, uint8 col);
 
@@ -27,22 +31,20 @@ int main(void) {
     display_message("Program Starting...", 0, 0);
     for (volatile long i = 0; i < 1000000; i++);
 
-    uint32 seconds = 0;
+    uint32 obj_count = 0;
     char buffer[10];
 
     LCD_Clear();
     display_message("Counting...", 0, 0);
-    display_message("Seconds:", 1, 0);
+    display_message("Objects:", 1, 0);
 
     while (1) {
         if (!emergency) {
-            int_to_str(seconds, buffer);
+            poll_for_object(&obj_count);
+            int_to_str(obj_count, buffer);
             display_message(buffer, 1, 9);
-
-            for (volatile long i = 0; i < 1000000; i++);
-            seconds++;
         } else {
-            display_message("Emergency!", 0, 0);
+            display_message("", 0, 0);
         }
     }
     return 0;
@@ -61,6 +63,7 @@ void init_GPIO(void) {
     // all pins with their respective properties set
     Gpio_Init(EMERGENCY_BUTTON, GPIO_INPUT, GPIO_PULL_UP);
     Gpio_Init(RESET_BUTTON, GPIO_INPUT, GPIO_PULL_UP);
+    Gpio_Init(OBJ_PIN, GPIO_INPUT, GPIO_PULL_UP);
 }
 
 void init_EXTI(void) {
@@ -69,6 +72,16 @@ void init_EXTI(void) {
 
     EXTI_Init(RESET_BUTTON, FALLING_EDGE_TRIGGERED);
     EXTI_Enable(3);
+}
+
+void poll_for_object(uint32 *counter) {
+    static uint8 last_pin_state = HIGH;
+    uint8 current_pin_state = Gpio_ReadPin(OBJ_PIN);
+    if (last_pin_state == HIGH && current_pin_state == LOW) {
+        (*counter)++;
+        for (int i = 0; i < 300000; i++) ;
+    }
+    last_pin_state = current_pin_state;
 }
 
 void int_to_str(uint32 num, char *buffer)
