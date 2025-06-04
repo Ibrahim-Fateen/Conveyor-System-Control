@@ -1,6 +1,5 @@
 #include "lcd.h"
 #include "GPIO.h"
-// #include "delay.h" // You must implement delay_ms(uint32)
 
 static void LCD_EnablePulse(void);
 static void LCD_Send4Bits(uint8 data);
