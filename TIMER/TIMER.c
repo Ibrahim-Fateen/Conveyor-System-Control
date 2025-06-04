@@ -3,11 +3,11 @@
 //
 #include "TIMER.h"
 #include "TIMER_Private.h"
-
-void Timer2_InputCapture_Init(uint8 Channel, uint8 EdgeSelect,uint16 Prescaler)
+#include "stm32f4xx.h"
+void Timer2_InputCapture_Init(uint8 Channel, uint8 EdgeSelect)
 {
     // 2. Basic timer config
-    TIM2->PSC = 16-1; // Prescaler (adjust for slower signal)
+    TIM2->PSC = 16000-1; // Prescaler (adjust for slower signal)
     TIM2->EGR |= (0x1UL<<(0U));
     TIM2->SR &= ~((0x1UL<<(0U)));
 
@@ -114,4 +114,56 @@ uint8 Timer2_HasOverflowed(void) {
 
 void Timer2_ClearOverflowFlag(void) {
     TIM2->SR &= ~(1 << 0);
+}
+
+void Timer3_PWM_Init(PWM_Channel channel) {
+    // Enable TIM3 clock (in RCC before calling this)
+    TIM3->PSC = 160000 - 1; // 1 MHz timer clock
+    TIM2->EGR |= (0x1UL<<(0U));
+    TIM2->SR &= ~((0x1UL<<(0U)));
+    TIM3->ARR = 1000 - 1; // 1 kHz PWM frequency
+
+    // Set PWM mode 1 and enable preload
+    switch (channel) {
+        case PWM_CHANNEL_1:
+            TIM3->CCMR1 &= ~TIM_CCMR1_OC1M;
+        TIM3->CCMR1 |= (6 << TIM_CCMR1_OC1M_Pos); // PWM mode 1
+        TIM3->CCMR1 |= TIM_CCMR1_OC1PE; // preload enable
+        TIM3->CCER |= TIM_CCER_CC1E;    // enable output
+        break;
+        case PWM_CHANNEL_2:
+            TIM3->CCMR1 &= ~TIM_CCMR1_OC2M;
+        TIM3->CCMR1 |= (6 << TIM_CCMR1_OC2M_Pos);
+        TIM3->CCMR1 |= TIM_CCMR1_OC2PE;
+        TIM3->CCER |= TIM_CCER_CC2E;
+        break;
+        case PWM_CHANNEL_3:
+            TIM3->CCMR2 &= ~TIM_CCMR2_OC3M;
+        TIM3->CCMR2 |= (6 << TIM_CCMR2_OC3M_Pos);
+        TIM3->CCMR2 |= TIM_CCMR2_OC3PE;
+        TIM3->CCER |= TIM_CCER_CC3E;
+        break;
+        case PWM_CHANNEL_4:
+            TIM3->CCMR2 &= ~TIM_CCMR2_OC4M;
+        TIM3->CCMR2 |= (6 << TIM_CCMR2_OC4M_Pos);
+        TIM3->CCMR2 |= TIM_CCMR2_OC4PE;
+        TIM3->CCER |= TIM_CCER_CC4E;
+        break;
+    }
+
+    TIM3->CR1 |= TIM_CR1_ARPE; // auto-reload preload
+    TIM3->EGR = TIM_EGR_UG;    // update registers
+    TIM3->CR1 |= TIM_CR1_CEN;  // enable timer
+}
+
+void Timer3_Set_PWM_Duty(PWM_Channel channel, uint8 duty_cycle_percent) {
+    if (duty_cycle_percent > 100) duty_cycle_percent = 100;
+    uint16 compare_value = ((uint32)duty_cycle_percent * (TIM3->ARR + 1)) / 100;
+
+    switch (channel) {
+        case PWM_CHANNEL_1: TIM3->CCR1 = compare_value; break;
+        case PWM_CHANNEL_2: TIM3->CCR2 = compare_value; break;
+        case PWM_CHANNEL_3: TIM3->CCR3 = compare_value; break;
+        case PWM_CHANNEL_4: TIM3->CCR4 = compare_value; break;
+    }
 }

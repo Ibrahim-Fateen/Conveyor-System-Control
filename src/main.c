@@ -35,10 +35,9 @@ int main(void) {
     init_GPIO();
     init_EXTI();
     LCD_Init();
-    Timer2_InputCapture_Init(TIM_CHANNEL_1, IC_RISING_EDGE,83);
-
-    uint16 firstEdge = 0, secondEdge = 0;
-    uint8 firstCaptured = 0;
+    Timer2_InputCapture_Init(TIM_CHANNEL_1, IC_RISING_EDGE);
+    Timer3_PWM_Init(PWM_CHANNEL_1);
+    // Timer3_Set_PWM_Duty(PWM_CHANNEL_1, duty);
 
     display_message("Program Starting...", 0, 0);
     for (volatile long i = 0; i < 1000000; i++);
@@ -72,7 +71,7 @@ int main(void) {
 void init_RCC(void) {
     Rcc_Init();
 
-    uint8 used_peripherals[] = {RCC_GPIOA, RCC_GPIOB, RCC_TIM2, RCC_SYSCFG};
+    uint8 used_peripherals[] = {RCC_GPIOA, RCC_GPIOB, RCC_TIM2, RCC_SYSCFG,RCC_TIM3};
     for (int i = 0; i < sizeof(used_peripherals); i++) {
         Rcc_Enable(used_peripherals[i]);
     }
@@ -125,7 +124,7 @@ float time_calc(void) {
         else
             pulseWidth = (0xFFFF - firstEdge) + secondEdge + 1;
 
-        time_s = pulseWidth / 1e6;
+        time_s = pulseWidth;
 
         firstCaptured = 0;
     }

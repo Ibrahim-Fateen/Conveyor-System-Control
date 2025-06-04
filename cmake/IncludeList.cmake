@@ -9,6 +9,7 @@ set(INCLUDE_LIST ${INCLUDE_LIST}
         ${PROJECT_PATH}/EXTI
         ${PROJECT_PATH}/SCB
         ${PROJECT_PATH}/LCD
+        ${PROJECT_PATH}/TIMER
 )
 
 if (USE_HAL)
