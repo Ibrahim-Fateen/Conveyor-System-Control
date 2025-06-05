@@ -7,6 +7,7 @@
 #include "TIMER.h"
 #include "stm32f4xx.h"
 #include "ADC.h"
+
 #define EMERGENCY_BUTTON GPIO_A, 2
 #define RESET_BUTTON GPIO_A, 3
 
@@ -35,7 +36,7 @@ typedef enum {
 
 int emergency = FALSE;
 int motor_state = FORWARD;
-int PWM = 50;
+uint16 PWM = 50;
 
 void init_RCC(void);
 void init_GPIO(void);
@@ -73,10 +74,6 @@ int main(void) {
     display_message("Counting...", 0, 0);
     display_message("Objects:", 1, 0);
 
-    // ADC
-    uint32 adc_value;
-
-
     while (1) {
         if (!emergency) {
             if (motor_state == FORWARD) poll_for_object(&obj_count);
@@ -90,27 +87,25 @@ int main(void) {
                 display_message(time_buffer, 0, 0); // Overwrite first line
             }
 
+            if (adc_done) {
+                adc_done = 0;
+                uint16 adc_value = adc_modes[mode]();
+                PWM = ADC_Duty_Cycle(adc_value,12,100);
+                ADC_Start_Conversion();
+            }
+
             EXTI_Disable(2);
             find_motor_direction();
             EXTI_Enable(2);
         } else {
             display_message("", 0, 0);
         }
-      // LOOP FOR  ADC CONVERSION ,  WE GET DUTY CYCLE FROM IT
-        // if (adc_done) {
-        //         adc_done = 0;
-        //         uint16 adc_value = adc_modes[mode]();
-        //         uint16 duty_cycle = ADC_Duty_Cycle(adc_value,12,100);
-        //         int_to_str(duty_cycle, buffer);
-        //         display_message(buffer, 1, 0);
-        //         ADC_Start_Conversion();
-        //     }
         control_motor();
     }
     return 0;
 }
 uint8 init_ADC(void){
-    uint8 mode = ADC_MODE_INTERRUPT;
+    uint8 mode = ADC_MODE_POLLING;
     ADC_Init(1, RES_12_BIT,PCLK_4, mode);
     ADC_Start_Conversion();
     return mode;
