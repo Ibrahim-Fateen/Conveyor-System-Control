@@ -15,6 +15,7 @@ typedef enum {
     PWM_CHANNEL_3,
     PWM_CHANNEL_4
 } PWM_Channel;
+
 // Edge types
 #define IC_RISING_EDGE  0
 #define IC_FALLING_EDGE 1

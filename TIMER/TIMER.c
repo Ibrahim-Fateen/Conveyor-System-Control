@@ -119,36 +119,36 @@ void Timer2_ClearOverflowFlag(void) {
 void Timer3_PWM_Init(PWM_Channel channel) {
     // Enable TIM3 clock (in RCC before calling this)
     TIM3->PSC = 160000 - 1; // 1 MHz timer clock
-    TIM2->EGR |= (0x1UL<<(0U));
-    TIM2->SR &= ~((0x1UL<<(0U)));
+    TIM3->EGR |= (0x1UL<<(0U));
+    TIM3->SR &= ~((0x1UL<<(0U)));
     TIM3->ARR = 1000 - 1; // 1 kHz PWM frequency
 
     // Set PWM mode 1 and enable preload
     switch (channel) {
         case PWM_CHANNEL_1:
             TIM3->CCMR1 &= ~TIM_CCMR1_OC1M;
-        TIM3->CCMR1 |= (6 << TIM_CCMR1_OC1M_Pos); // PWM mode 1
-        TIM3->CCMR1 |= TIM_CCMR1_OC1PE; // preload enable
-        TIM3->CCER |= TIM_CCER_CC1E;    // enable output
-        break;
+            TIM3->CCMR1 |= (6 << TIM_CCMR1_OC1M_Pos); // PWM mode 1
+            TIM3->CCMR1 |= TIM_CCMR1_OC1PE; // preload enable
+            TIM3->CCER |= TIM_CCER_CC1E;    // enable output
+            break;
         case PWM_CHANNEL_2:
             TIM3->CCMR1 &= ~TIM_CCMR1_OC2M;
-        TIM3->CCMR1 |= (6 << TIM_CCMR1_OC2M_Pos);
-        TIM3->CCMR1 |= TIM_CCMR1_OC2PE;
-        TIM3->CCER |= TIM_CCER_CC2E;
-        break;
+            TIM3->CCMR1 |= (6 << TIM_CCMR1_OC2M_Pos);
+            TIM3->CCMR1 |= TIM_CCMR1_OC2PE;
+            TIM3->CCER |= TIM_CCER_CC2E;
+            break;
         case PWM_CHANNEL_3:
             TIM3->CCMR2 &= ~TIM_CCMR2_OC3M;
-        TIM3->CCMR2 |= (6 << TIM_CCMR2_OC3M_Pos);
-        TIM3->CCMR2 |= TIM_CCMR2_OC3PE;
-        TIM3->CCER |= TIM_CCER_CC3E;
-        break;
+            TIM3->CCMR2 |= (6 << TIM_CCMR2_OC3M_Pos);
+            TIM3->CCMR2 |= TIM_CCMR2_OC3PE;
+            TIM3->CCER |= TIM_CCER_CC3E;
+            break;
         case PWM_CHANNEL_4:
             TIM3->CCMR2 &= ~TIM_CCMR2_OC4M;
-        TIM3->CCMR2 |= (6 << TIM_CCMR2_OC4M_Pos);
-        TIM3->CCMR2 |= TIM_CCMR2_OC4PE;
-        TIM3->CCER |= TIM_CCER_CC4E;
-        break;
+            TIM3->CCMR2 |= (6 << TIM_CCMR2_OC4M_Pos);
+            TIM3->CCMR2 |= TIM_CCMR2_OC4PE;
+            TIM3->CCER |= TIM_CCER_CC4E;
+            break;
     }
 
     TIM3->CR1 |= TIM_CR1_ARPE; // auto-reload preload

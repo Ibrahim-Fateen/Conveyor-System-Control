@@ -13,12 +13,27 @@
 
 #define INPUT_CAPTURE_PIN GPIO_A, 0
 
-#define PWM_PIN GPIO_A, 6
+#define PWM_FORWARD_PIN GPIO_A, 6
+#define PWM_BACK_PIN GPIO_A, 7
+
+#define MOTOR_FORWARD_PIN GPIO_A, 5
+#define MOTOR_REVERSE_PIN GPIO_A, 4
+
+#define MOTOR_DIRECTION_FORWARD_PIN GPIO_B, 12
+#define MOTOR_DIRECTION_BACK_PIN GPIO_B, 14
 
 #define TRUE 1
 #define FALSE 0
 
+typedef enum {
+    FORWARD,
+    REVERSE,
+    STOP
+} MOTOR_STATE;
+
 int emergency = FALSE;
+int motor_state = FORWARD;
+int PWM = 50;
 
 void init_RCC(void);
 void init_GPIO(void);
@@ -27,6 +42,10 @@ void init_EXTI(void);
 void poll_for_object(uint32 *counter);
 
 float time_calc(void);
+
+void control_motor(void);
+
+void find_motor_direction(void);
 
 void display_message(char *message, uint8 row, uint8 col);
 
@@ -39,7 +58,7 @@ int main(void) {
     LCD_Init();
     Timer2_InputCapture_Init(TIM_CHANNEL_1, IC_RISING_EDGE);
     Timer3_PWM_Init(PWM_CHANNEL_1);
-    // Timer3_Set_PWM_Duty(PWM_CHANNEL_1, duty);
+    Timer3_PWM_Init(PWM_CHANNEL_2);
 
     display_message("Program Starting...", 0, 0);
     for (volatile long i = 0; i < 1000000; i++);
@@ -53,7 +72,7 @@ int main(void) {
 
     while (1) {
         if (!emergency) {
-            poll_for_object(&obj_count);
+            if (motor_state == FORWARD) poll_for_object(&obj_count);
             int_to_str(obj_count, buffer);
             display_message(buffer, 1, 9);
 
@@ -63,9 +82,14 @@ int main(void) {
                 int_to_str((uint32)(time_s * 1000), time_buffer); // Convert to milliseconds
                 display_message(time_buffer, 0, 0); // Overwrite first line
             }
+
+            EXTI_Disable(2);
+            find_motor_direction();
+            EXTI_Enable(2);
         } else {
             display_message("", 0, 0);
         }
+        control_motor();
     }
     return 0;
 }
@@ -73,7 +97,7 @@ int main(void) {
 void init_RCC(void) {
     Rcc_Init();
 
-    uint8 used_peripherals[] = {RCC_GPIOA, RCC_GPIOB, RCC_TIM2, RCC_SYSCFG,RCC_TIM3};
+    uint8 used_peripherals[] = {RCC_GPIOA, RCC_GPIOB, RCC_TIM2, RCC_TIM3, RCC_SYSCFG,RCC_TIM3};
     for (int i = 0; i < sizeof(used_peripherals); i++) {
         Rcc_Enable(used_peripherals[i]);
     }
@@ -84,12 +108,20 @@ void init_GPIO(void) {
     Gpio_Init(EMERGENCY_BUTTON, GPIO_INPUT, GPIO_PULL_UP);
     Gpio_Init(RESET_BUTTON, GPIO_INPUT, GPIO_PULL_UP);
     Gpio_Init(OBJ_PIN, GPIO_INPUT, GPIO_PULL_UP);
+    Gpio_Init(MOTOR_DIRECTION_FORWARD_PIN, GPIO_INPUT, GPIO_PULL_UP);
+    Gpio_Init(MOTOR_DIRECTION_BACK_PIN, GPIO_INPUT, GPIO_PULL_UP);
+
+    Gpio_Init(MOTOR_FORWARD_PIN, GPIO_OUTPUT, GPIO_PUSH_PULL);
+    Gpio_Init(MOTOR_REVERSE_PIN, GPIO_OUTPUT, GPIO_PUSH_PULL);
 
     Gpio_Init(INPUT_CAPTURE_PIN, GPIO_AF, GPIO_PUSH_PULL);
     Gpio_Set_AF(INPUT_CAPTURE_PIN, AF_TIM_1_2);
 
-    Gpio_Init(PWM_PIN, GPIO_AF, GPIO_PUSH_PULL);
-    Gpio_Set_AF(PWM_PIN, AF_TIM_3_5);
+    Gpio_Init(PWM_FORWARD_PIN, GPIO_AF, GPIO_PUSH_PULL);
+    Gpio_Set_AF(PWM_FORWARD_PIN, AF_TIM_3_5);
+
+    Gpio_Init(PWM_BACK_PIN, GPIO_AF, GPIO_PUSH_PULL);
+    Gpio_Set_AF(PWM_BACK_PIN, AF_TIM_3_5);
 }
 
 void init_EXTI(void) {
@@ -136,6 +168,51 @@ float time_calc(void) {
     return time_s ;
 }
 
+void find_motor_direction(void) {
+    if (Gpio_ReadPin(MOTOR_DIRECTION_FORWARD_PIN) == LOW) {
+        if (motor_state == REVERSE) {
+            motor_state = FORWARD;
+            control_motor();
+        }
+    }
+    else if (Gpio_ReadPin(MOTOR_DIRECTION_BACK_PIN) == LOW) {
+        if (motor_state == FORWARD) {
+            motor_state = REVERSE;
+            control_motor();
+        }
+    }
+}
+
+void control_motor(void) {
+    switch (motor_state) {
+        case FORWARD:
+            // disable reverse
+            // add dead time
+            // enable forward
+            Timer3_Set_PWM_Duty(PWM_CHANNEL_2, 0);
+            Gpio_WritePin(MOTOR_REVERSE_PIN, LOW);
+            for (int i = 0; i < 100000; i++) ;
+            Timer3_Set_PWM_Duty(PWM_CHANNEL_1, PWM);
+            Gpio_WritePin(MOTOR_FORWARD_PIN, HIGH);
+            break;
+        case REVERSE:
+            Timer3_Set_PWM_Duty(PWM_CHANNEL_1, 0);
+            Gpio_WritePin(MOTOR_FORWARD_PIN, LOW);
+            for (int i = 0; i < 100000; i++) ;
+            Timer3_Set_PWM_Duty(PWM_CHANNEL_2, PWM);
+            Gpio_WritePin(MOTOR_REVERSE_PIN, HIGH);
+            break;
+        case STOP:
+            Timer3_Set_PWM_Duty(PWM_CHANNEL_1, 0);
+            Timer3_Set_PWM_Duty(PWM_CHANNEL_2, 0);
+            Gpio_WritePin(MOTOR_FORWARD_PIN, HIGH);
+            Gpio_WritePin(MOTOR_REVERSE_PIN, HIGH);
+            break;
+        default:
+            break;
+    }
+}
+
 void int_to_str(uint32 num, char *buffer)
 {
     int i = 0;
@@ -176,6 +253,8 @@ void display_message(char *message, uint8 row, uint8 col) {
 void EXTI2_IRQHandler(void) {
     if (EXTI_REGISTERS->EXTI_PR & (1 << 2)) {
         emergency = TRUE;
+        motor_state = STOP;
+        control_motor();
         EXTI_ClearPending(2);
     }
 }
