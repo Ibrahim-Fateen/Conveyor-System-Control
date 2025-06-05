@@ -5,13 +5,15 @@
 #include "Std_Types.h"
 #include "lcd.h"
 #include "TIMER.h"
-
+#include "stm32f4xx.h"
+#include "ADC.h"
 #define EMERGENCY_BUTTON GPIO_A, 2
 #define RESET_BUTTON GPIO_A, 3
 
 #define OBJ_PIN GPIO_A, 9
 
 #define INPUT_CAPTURE_PIN GPIO_A, 0
+#define ADC_POT_INPUT GPIO_A, 1
 
 #define PWM_FORWARD_PIN GPIO_A, 6
 #define PWM_BACK_PIN GPIO_A, 7
@@ -38,7 +40,7 @@ int PWM = 50;
 void init_RCC(void);
 void init_GPIO(void);
 void init_EXTI(void);
-
+uint8 init_ADC(void);
 void poll_for_object(uint32 *counter);
 
 float time_calc(void);
@@ -56,6 +58,7 @@ int main(void) {
     init_GPIO();
     init_EXTI();
     LCD_Init();
+    uint8 mode = init_ADC();
     Timer2_InputCapture_Init(TIM_CHANNEL_1, IC_RISING_EDGE);
     Timer3_PWM_Init(PWM_CHANNEL_1);
     Timer3_PWM_Init(PWM_CHANNEL_2);
@@ -69,6 +72,10 @@ int main(void) {
     LCD_Clear();
     display_message("Counting...", 0, 0);
     display_message("Objects:", 1, 0);
+
+    // ADC
+    uint32 adc_value;
+
 
     while (1) {
         if (!emergency) {
@@ -89,15 +96,29 @@ int main(void) {
         } else {
             display_message("", 0, 0);
         }
+      // LOOP FOR  ADC CONVERSION ,  WE GET DUTY CYCLE FROM IT
+        // if (adc_done) {
+        //         adc_done = 0;
+        //         uint16 adc_value = adc_modes[mode]();
+        //         uint16 duty_cycle = ADC_Duty_Cycle(adc_value,12,100);
+        //         int_to_str(duty_cycle, buffer);
+        //         display_message(buffer, 1, 0);
+        //         ADC_Start_Conversion();
+        //     }
         control_motor();
     }
     return 0;
 }
-
+uint8 init_ADC(void){
+    uint8 mode = ADC_MODE_INTERRUPT;
+    ADC_Init(1, RES_12_BIT,PCLK_4, mode);
+    ADC_Start_Conversion();
+    return mode;
+}
 void init_RCC(void) {
     Rcc_Init();
 
-    uint8 used_peripherals[] = {RCC_GPIOA, RCC_GPIOB, RCC_TIM2, RCC_TIM3, RCC_SYSCFG,RCC_TIM3};
+    uint8 used_peripherals[] = {RCC_GPIOA, RCC_GPIOB, RCC_TIM2, RCC_SYSCFG, RCC_TIM3, RCC_ADC1};
     for (int i = 0; i < sizeof(used_peripherals); i++) {
         Rcc_Enable(used_peripherals[i]);
     }
@@ -122,6 +143,7 @@ void init_GPIO(void) {
 
     Gpio_Init(PWM_BACK_PIN, GPIO_AF, GPIO_PUSH_PULL);
     Gpio_Set_AF(PWM_BACK_PIN, AF_TIM_3_5);
+    Gpio_Init(ADC_POT_INPUT, GPIO_ANALOG,GPIO_NO_PULL_DOWN);
 }
 
 void init_EXTI(void) {
