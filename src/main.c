@@ -63,14 +63,14 @@ void display_message(char *message, uint8 row, uint8 col);
 void int_to_str(uint32 num, char *buffer);
 void find_motor_direction(void);
 void read_potentiometer(ADC_Mode mode);
-uint16 time_calc_ms(void);
+uint32 time_calc_us(void);
 
 // globals
 uint8 emergency = FALSE;
 MOTOR_STATE motor_state = FORWARD;
 uint16 PWM = 50;
 uint16 object_count = 0;
-uint16 speed = 0;
+uint32 speed = 0;
 
 uint8 PWM_changed = TRUE;
 uint8 object_count_changed = TRUE;
@@ -99,12 +99,12 @@ void main (void) {
     display_message("PWM:", 1, 8);
     display_message("%", 1, 15);
 
-    control_motor();
+    // control_motor();
     while (1) {
         if (emergency) {
             display_message("EMERGENCY STOP", 0, 0);
         } else {
-            // measure_speed();
+            measure_speed();
             read_potentiometer(adc_mode);
             find_motor_direction();
             if (motor_state == FORWARD) poll_for_object();
@@ -134,6 +134,9 @@ void init_GPIO(void) {
     Gpio_Init(MOTOR_REVERSE_PIN, GPIO_OUTPUT, GPIO_PUSH_PULL);
 
     Gpio_Init(POT_SPEED_CONTROL_PIN, GPIO_ANALOG,GPIO_NO_PULL_DOWN);
+
+    Gpio_Init(SPEED_MEASUREMENT_PIN, GPIO_AF, GPIO_PUSH_PULL);
+    Gpio_Set_AF(SPEED_MEASUREMENT_PIN, AF_TIM_1_2);
 
     Gpio_Init(PWM_FORWARD_PIN, GPIO_AF, GPIO_PUSH_PULL);
     Gpio_Set_AF(PWM_FORWARD_PIN, AF_TIM_3_5);
@@ -165,10 +168,13 @@ void init_EXTI(void) {
 
 // program logic
 void measure_speed(void) {
-    // float pulse_width_s = time_calc_ms() / 1000.0;
-    // speed = 60 / pulse_width_s;
-    uint16 pusle_width = time_calc_ms();
-    update_speed(pusle_width);
+    uint32_t pulse_width_us = time_calc_us();
+    if (pulse_width_us != 0) {
+        uint32_t new_speed = 60000UL / pulse_width_us;
+        if (new_speed != speed) {
+            update_speed(new_speed);
+        }
+    }
 }
 
 void control_motor(void) {
@@ -314,30 +320,28 @@ void find_motor_direction(void) {
     }
 }
 
-uint16 time_calc_ms(void) {
+uint32 time_calc_us(void) {
     static uint16 firstEdge = 0;
     static uint8 firstCaptured = 0;
-    static uint32 time_ms = 0;
+    static uint32 pulseWidth = 0;
 
     uint16 captured = ReadCapturedValue(IC_TIMER, CHANNEL_1);
-    return captured;
     if (!firstCaptured) {
         firstEdge = captured;
         firstCaptured = 1;
+        return 0;
     } else {
         uint16 secondEdge = captured;
 
-        uint16 pulseWidth;
-        if (secondEdge >= firstEdge)
+        if (Timer_HasOverflow(IC_TIMER)) {
+            pulseWidth = (0xFFFF - firstEdge) + secondEdge + 1;
+            Timer_ClearOverflow(IC_TIMER);
+        } else
             pulseWidth = secondEdge - firstEdge;
-        else
-            pulseWidth = (0xFFFFFFFF - firstEdge) + secondEdge + 1;
-
-        time_ms = pulseWidth;
 
         firstCaptured = 0;
+        return pulseWidth;
     }
-    return time_ms ;
 }
 
 void display_information(void) {

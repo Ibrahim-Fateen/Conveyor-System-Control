@@ -11,7 +11,7 @@ void Timer_InputCapture_Init(uint8 timer, Channel channel, EDGE_TRIGGER edge_tri
     TIMx_Registers * TIMx = (TIMx_Registers *)TIMERs_address_map[timer - TIM_2];
 
     // 2. Basic timer config
-    TIMx->PSC = 16000 - 1; // Prescaler (adjust for slower signal)  (16MHz / PSC)
+    TIMx->PSC = 16000 - 1; // Prescaler (adjust for slower signal)  (16MHz / (PSC + 1))
     TIMx->EGR |= (0x1UL<<(0U));
     TIMx->SR &= ~((0x1UL<<(0U)));
 
@@ -151,13 +151,13 @@ uint16 ReadCapturedValue(uint8 timer, Channel channel) {
     TIMx_Registers * TIMx = (TIMx_Registers *)TIMERs_address_map[timer - TIM_2];
     switch (channel) {
         case CHANNEL_1:
-            return (uint16) (TIMx->CCMR1);
+            return (uint16) (TIMx->CCR1);
         case CHANNEL_2:
-            return (uint16) (TIMx->CCMR2);
+            return (uint16) (TIMx->CCR2);
         case CHANNEL_3:
-            return (uint16) (TIMx->CCER);
+            return (uint16) (TIMx->CCR3);
         case CHANNEL_4:
-            return (uint16) (TIMx->CR1);
+            return (uint16) (TIMx->CCR4);
         default:
             return 0;
     }
