@@ -91,8 +91,8 @@ void main (void) {
         if (emergency) {
             display_message("EMERGENCY STOP", 0, 0);
         } else {
-            measure_speed(); // not implemented
-            read_potentiometer(adc_mode); // not implemented
+            measure_speed();
+            read_potentiometer(adc_mode);
             find_motor_direction();
             if (motor_state == FORWARD) poll_for_object();
             display_information();
@@ -120,8 +120,7 @@ void init_GPIO(void) {
     Gpio_Init(MOTOR_FORWARD_PIN, GPIO_OUTPUT, GPIO_PUSH_PULL);
     Gpio_Init(MOTOR_REVERSE_PIN, GPIO_OUTPUT, GPIO_PUSH_PULL);
 
-    Gpio_Init(POT_SPEED_CONTROL_PIN, GPIO_AF, GPIO_PUSH_PULL);
-    Gpio_Set_AF(POT_SPEED_CONTROL_PIN, AF_TIM_1_2);
+    Gpio_Init(POT_SPEED_CONTROL_PIN, GPIO_ANALOG,GPIO_NO_PULL_DOWN);
 
     Gpio_Init(PWM_FORWARD_PIN, GPIO_AF, GPIO_PUSH_PULL);
     Gpio_Set_AF(PWM_FORWARD_PIN, AF_TIM_3_5);
