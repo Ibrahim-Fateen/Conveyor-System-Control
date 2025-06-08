@@ -56,6 +56,7 @@ void control_motor(void);
 void poll_for_object(void);
 
 // helpers
+void update_speed(uint16 new_speed);
 void update_count(void);
 void display_information(void);
 void display_message(char *message, uint8 row, uint8 col);
@@ -70,6 +71,11 @@ MOTOR_STATE motor_state = FORWARD;
 uint16 PWM = 50;
 uint16 object_count = 0;
 uint16 speed = 0;
+
+uint8 PWM_changed = TRUE;
+uint8 object_count_changed = TRUE;
+uint8 speed_changed = TRUE;
+uint8 direction_changed = TRUE;
 
 char buffer[10];
 
@@ -87,7 +93,12 @@ void main (void) {
     for (volatile long i = 0; i < 1000000; i++);
 
     LCD_Clear();
-    display_information();
+    display_message("SPD:", 0, 0);
+    display_message("rpm", 0, 10);
+    display_message("CNT:", 1, 0);
+    display_message("PWM:", 1, 8);
+    display_message("%", 1, 15);
+
     control_motor();
     while (1) {
         if (emergency) {
@@ -96,7 +107,7 @@ void main (void) {
             // measure_speed();
             read_potentiometer(adc_mode);
             find_motor_direction();
-            // if (motor_state == FORWARD) poll_for_object();
+            if (motor_state == FORWARD) poll_for_object();
             display_information();
         }
     }
@@ -157,7 +168,7 @@ void measure_speed(void) {
     // float pulse_width_s = time_calc_ms() / 1000.0;
     // speed = 60 / pulse_width_s;
     uint16 pusle_width = time_calc_ms();
-    if (pusle_width > 0) speed = pusle_width;
+    update_speed(pusle_width);
 }
 
 void control_motor(void) {
@@ -220,29 +231,23 @@ void EXTI3_IRQHandler(void) {
 // helpers
 void update_speed(uint16 new_speed) {
     speed = new_speed;
-    int_to_str(speed, buffer);
-    display_message("      ", 0, 4);
-    display_message(buffer, 0, 4);
+    speed_changed = TRUE;
 }
 
-void update_direction(char arrow) {
-    char direction_buffer[] = {arrow};
-    display_message(direction_buffer, 0, 15);
+void update_direction(void) {
+    direction_changed = TRUE;
     control_motor();
 }
 
 void update_count(void) {
     object_count++;
-    int_to_str(object_count, buffer);
-    display_message(buffer, 1, 4);
+    object_count_changed = TRUE;
 }
 
 void update_PWM(uint16 new_PWM) {
     PWM = new_PWM;
     control_motor();
-    int_to_str(PWM, buffer);
-    display_message("   ", 1, 12);
-    display_message(buffer, 1, 12);
+    PWM_changed = TRUE;
 }
 
 void read_potentiometer(ADC_Mode mode) {
@@ -298,24 +303,24 @@ void find_motor_direction(void) {
     if (Gpio_ReadPin(MOTOR_DIRECTION_FORWARD_PIN) == LOW) {
         if (motor_state == REVERSE) {
             motor_state = FORWARD;
-            update_direction(R_ARROW);
+            update_direction();
         }
     }
     else if (Gpio_ReadPin(MOTOR_DIRECTION_REVERSE_PIN) == LOW) {
         if (motor_state == FORWARD) {
             motor_state = REVERSE;
-            update_direction(L_ARROW);
+            update_direction();
         }
     }
 }
 
 uint16 time_calc_ms(void) {
     static uint16 firstEdge = 0;
-    static uint16 firstCaptured = 0;
-    static uint16 time_ms = 0;
+    static uint8 firstCaptured = 0;
+    static uint32 time_ms = 0;
 
     uint16 captured = ReadCapturedValue(IC_TIMER, CHANNEL_1);
-
+    return captured;
     if (!firstCaptured) {
         firstEdge = captured;
         firstCaptured = 1;
@@ -326,7 +331,7 @@ uint16 time_calc_ms(void) {
         if (secondEdge >= firstEdge)
             pulseWidth = secondEdge - firstEdge;
         else
-            pulseWidth = (0xFFFF - firstEdge) + secondEdge + 1;
+            pulseWidth = (0xFFFFFFFF - firstEdge) + secondEdge + 1;
 
         time_ms = pulseWidth;
 
@@ -336,25 +341,34 @@ uint16 time_calc_ms(void) {
 }
 
 void display_information(void) {
-    display_message("SPD:", 0, 0);
-    display_message("rpm", 0, 10);
-    display_message("CNT:", 1, 0);
-    display_message("PWM:", 1, 8);
-    display_message("%", 1, 15);
     // display speed (in rpm) up to 3 figures???
-    int_to_str(speed, buffer);
-    display_message(buffer, 0, 4);
+    if (speed_changed) {
+        int_to_str(speed, buffer);
+        display_message("      ", 0, 4);
+        display_message(buffer, 0, 4);
+        speed_changed = FALSE;
+    }
 
-    char direction_buffer[1];
-    if (motor_state == FORWARD)
-        direction_buffer[0] = R_ARROW;
-    else
-        direction_buffer[0] = L_ARROW;
-    display_message(direction_buffer, 0, 15);
+    if (direction_changed) {
+        char direction_buffer[1];
+        if (motor_state == FORWARD)
+            direction_buffer[0] = R_ARROW;
+        else
+            direction_buffer[0] = L_ARROW;
+        display_message(direction_buffer, 0, 15);
+        direction_changed = FALSE;
+    }
 
-    int_to_str(object_count, buffer);
-    display_message(buffer, 1, 4);
+    if (object_count_changed) {
+        int_to_str(object_count, buffer);
+        display_message(buffer, 1, 4);
+        object_count_changed = FALSE;
+    }
 
-    int_to_str(PWM, buffer);
-    display_message(buffer, 1, 12);
+    if (PWM_changed) {
+        int_to_str(PWM, buffer);
+        display_message("   ", 1, 12);
+        display_message(buffer, 1, 12);
+        PWM_changed = FALSE;
+    }
 }
