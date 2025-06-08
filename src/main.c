@@ -54,9 +54,10 @@ void init_EXTI(void);
 void measure_speed(void);
 void control_motor(void);
 void poll_for_object(void);
-void display_information(void);
 
 // helpers
+void update_count(void);
+void display_information(void);
 void display_message(char *message, uint8 row, uint8 col);
 void int_to_str(uint32 num, char *buffer);
 void find_motor_direction(void);
@@ -64,7 +65,7 @@ void read_potentiometer(ADC_Mode mode);
 uint16 time_calc_ms(void);
 
 // globals
-uint8 emergency = 0;
+uint8 emergency = FALSE;
 MOTOR_STATE motor_state = FORWARD;
 uint16 PWM = 50;
 uint16 object_count = 0;
@@ -86,15 +87,16 @@ void main (void) {
     for (volatile long i = 0; i < 1000000; i++);
 
     LCD_Clear();
+    display_information();
     control_motor();
     while (1) {
         if (emergency) {
             display_message("EMERGENCY STOP", 0, 0);
         } else {
-            measure_speed();
+            // measure_speed();
             read_potentiometer(adc_mode);
             find_motor_direction();
-            if (motor_state == FORWARD) poll_for_object();
+            // if (motor_state == FORWARD) poll_for_object();
             display_information();
         }
     }
@@ -127,7 +129,6 @@ void init_GPIO(void) {
 
     Gpio_Init(PWM_REVERSE_PIN, GPIO_AF, GPIO_PUSH_PULL);
     Gpio_Set_AF(PWM_REVERSE_PIN, AF_TIM_3_5);
-    Gpio_Init(PWM_REVERSE_PIN, GPIO_ANALOG,GPIO_NO_PULL_DOWN);
 }
 
 void init_TIM(void) {
@@ -165,19 +166,19 @@ void control_motor(void) {
             Timer_Set_PWM_Duty(PWM_TIMER, REVERSE_CHANNEL, 0);
             Gpio_WritePin(MOTOR_REVERSE_PIN, LOW);
 
-            for (volatile int i = 0; i < 1000; i++);
+            for (volatile int i = 0; i < 100000; i++);
 
-            Gpio_WritePin(MOTOR_FORWARD_PIN, HIGH);
             Timer_Set_PWM_Duty(PWM_TIMER, FORWARD_CHANNEL, PWM);
+            Gpio_WritePin(MOTOR_FORWARD_PIN, HIGH);
             break;
         case REVERSE:
             Timer_Set_PWM_Duty(PWM_TIMER, FORWARD_CHANNEL, 0);
             Gpio_WritePin(MOTOR_FORWARD_PIN, LOW);
 
-            for (volatile int i = 0; i < 1000; i++);
+            for (volatile int i = 0; i < 100000; i++);
 
-            Gpio_WritePin(MOTOR_REVERSE_PIN, HIGH);
             Timer_Set_PWM_Duty(PWM_TIMER, REVERSE_CHANNEL, PWM);
+            Gpio_WritePin(MOTOR_REVERSE_PIN, HIGH);
             break;
         case STOP:
             Timer_Set_PWM_Duty(PWM_TIMER, FORWARD_CHANNEL, 0);
@@ -191,34 +192,10 @@ void poll_for_object(void) {
     static uint8 last_pin_state = HIGH;
     uint8 current_pin_state = Gpio_ReadPin(OBJ_DETECTION_PIN);
     if (last_pin_state == HIGH && current_pin_state == LOW) {
-        object_count++;
-        for (int i = 0; i < 300000; i++) ;  // debouncing
+        update_count();
+        for (int i = 0; i < 300000; i++) ;  // debouncing - might not be needed if update method has some delay
     }
     last_pin_state = current_pin_state;
-}
-
-void display_information(void) {
-    display_message("SPD:", 0, 0);
-    // display speed (in rpm) up to 3 figures???
-    int_to_str(speed, buffer);
-    display_message(buffer, 0, 4);
-    display_message("rpm", 0, 10);
-
-    char direction_buffer[1];
-    if (motor_state == FORWARD)
-        direction_buffer[0] = R_ARROW;
-    else
-        direction_buffer[0] = L_ARROW;
-    display_message(direction_buffer, 0, 15);
-
-    display_message("CNT:", 1, 0);
-    int_to_str(object_count, buffer);
-    display_message(buffer, 1, 4);
-
-    display_message("PWM:", 1, 8);
-    int_to_str(PWM, buffer);
-    display_message(buffer, 1, 12);
-    display_message("%", 1, 15);
 }
 
 
@@ -241,10 +218,41 @@ void EXTI3_IRQHandler(void) {
 
 
 // helpers
+void update_speed(uint16 new_speed) {
+    speed = new_speed;
+    int_to_str(speed, buffer);
+    display_message("      ", 0, 4);
+    display_message(buffer, 0, 4);
+}
+
+void update_direction(char arrow) {
+    char direction_buffer[] = {arrow};
+    display_message(direction_buffer, 0, 15);
+    control_motor();
+}
+
+void update_count(void) {
+    object_count++;
+    int_to_str(object_count, buffer);
+    display_message(buffer, 1, 4);
+}
+
+void update_PWM(uint16 new_PWM) {
+    PWM = new_PWM;
+    control_motor();
+    int_to_str(PWM, buffer);
+    display_message("   ", 1, 12);
+    display_message(buffer, 1, 12);
+}
+
 void read_potentiometer(ADC_Mode mode) {
     if (adc_done) {
         adc_done = 0;
         uint16 adc_value = adc_modes[mode]();
+        uint16 new_PWM = ADC_Duty_Cycle(adc_value, 12, 100);
+        if (PWM != new_PWM) {
+            update_PWM(new_PWM);
+        }
         PWM = ADC_Duty_Cycle(adc_value,12,100);
         ADC_Start_Conversion();
     }
@@ -290,13 +298,13 @@ void find_motor_direction(void) {
     if (Gpio_ReadPin(MOTOR_DIRECTION_FORWARD_PIN) == LOW) {
         if (motor_state == REVERSE) {
             motor_state = FORWARD;
-            control_motor();
+            update_direction(R_ARROW);
         }
     }
     else if (Gpio_ReadPin(MOTOR_DIRECTION_REVERSE_PIN) == LOW) {
         if (motor_state == FORWARD) {
             motor_state = REVERSE;
-            control_motor();
+            update_direction(L_ARROW);
         }
     }
 }
@@ -325,4 +333,28 @@ uint16 time_calc_ms(void) {
         firstCaptured = 0;
     }
     return time_ms ;
+}
+
+void display_information(void) {
+    display_message("SPD:", 0, 0);
+    display_message("rpm", 0, 10);
+    display_message("CNT:", 1, 0);
+    display_message("PWM:", 1, 8);
+    display_message("%", 1, 15);
+    // display speed (in rpm) up to 3 figures???
+    int_to_str(speed, buffer);
+    display_message(buffer, 0, 4);
+
+    char direction_buffer[1];
+    if (motor_state == FORWARD)
+        direction_buffer[0] = R_ARROW;
+    else
+        direction_buffer[0] = L_ARROW;
+    display_message(direction_buffer, 0, 15);
+
+    int_to_str(object_count, buffer);
+    display_message(buffer, 1, 4);
+
+    int_to_str(PWM, buffer);
+    display_message(buffer, 1, 12);
 }
