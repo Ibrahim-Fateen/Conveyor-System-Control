@@ -3,35 +3,36 @@
 
 #include "Std_Types.h"
 
-// Timer Channels
-#define TIM_CHANNEL_1 1
-#define TIM_CHANNEL_2 2
-#define TIM_CHANNEL_3 3
-#define TIM_CHANNEL_4 4
+typedef enum {
+    CHANNEL_1,
+    CHANNEL_2,
+    CHANNEL_3,
+    CHANNEL_4
+} Channel;
+
+#define TIM_2 0
+#define TIM_3 1
+#define TIM_4 2
 
 typedef enum {
-    PWM_CHANNEL_1,
-    PWM_CHANNEL_2,
-    PWM_CHANNEL_3,
-    PWM_CHANNEL_4
-} PWM_Channel;
+    INPUT_CAPTURE,
+    PWM_OUTPUT
+} TIMER_MODE;
 
-// Edge types
-#define IC_RISING_EDGE  0
-#define IC_FALLING_EDGE 1
-#define IC_BOTH_EDGES   2
+typedef enum {
+    IC_RISING,
+    IC_FALLING,
+    IC_BOTH
+} EDGE_TRIGGER;
 
-void Timer2_InputCapture_Init(uint8 Channel, uint8 EdgeSelect);
+void TIMER_Init(uint8 timer, TIMER_MODE mode, Channel channel, EDGE_TRIGGER edge_trigger);
 
-uint16 Timer2_ReadCapturedValue(uint8 Channel);
+uint16 ReadCapturedValue(uint8 timer, Channel channel);
 
-uint8 Timer2_HasOverflowed(void);
+uint8 Timer_HasOverflow(uint8 timer);
 
-void Timer2_ClearOverflowFlag(void);
+void Timer_ClearOverflow(uint8 timer);
 
-
-void Timer3_PWM_Init(PWM_Channel channel);
-
-void Timer3_Set_PWM_Duty(PWM_Channel channel, uint8 duty_cycle_percent);
+void Timer_Set_PWM_Duty(uint8 timer, Channel channel, uint8 duty_cycle_percent);
 
 #endif

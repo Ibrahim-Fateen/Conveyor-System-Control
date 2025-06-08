@@ -38,9 +38,9 @@ typedef struct {
 
 
 
-#define TIM2   ((TIMx_Registers *) TIM2_BASE_ADDR)
-#define TIM3   ((TIMx_Registers *) TIM3_BASE_ADDR)
-#define TIM4   ((TIMx_Registers *) TIM4_BASE_ADDR)
+// #define TIM2   ((TIMx_Registers *) TIM2_BASE_ADDR)
+// #define TIM3   ((TIMx_Registers *) TIM3_BASE_ADDR)
+// #define TIM4   ((TIMx_Registers *) TIM4_BASE_ADDR)
 
 
 
