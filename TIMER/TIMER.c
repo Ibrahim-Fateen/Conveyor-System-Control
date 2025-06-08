@@ -11,7 +11,7 @@ void Timer_InputCapture_Init(uint8 timer, Channel channel, EDGE_TRIGGER edge_tri
     TIMx_Registers * TIMx = (TIMx_Registers *)TIMERs_address_map[timer - TIM_2];
 
     // 2. Basic timer config
-    TIMx->PSC = 16000-1; // Prescaler (adjust for slower signal)
+    TIMx->PSC = 16 - 1; // Prescaler (adjust for slower signal)  (16MHz / PSC)
     TIMx->EGR |= (0x1UL<<(0U));
     TIMx->SR &= ~((0x1UL<<(0U)));
 
@@ -96,10 +96,10 @@ void Timer_InputCapture_Init(uint8 timer, Channel channel, EDGE_TRIGGER edge_tri
 void Timer_PWM_Init(uint8 timer, Channel channel) {
     TIMx_Registers * TIMx = (TIMx_Registers *)TIMERs_address_map[timer - TIM_2];
 
-    TIMx->PSC = 16000-1;
+    TIMx->PSC = 16 - 1;
     TIMx->EGR |= (0x1UL<<(0U));
     TIMx->SR &= ~((0x1UL<<(0U)));
-    TIMx->ARR = 1000 - 1;
+    TIMx->ARR = 1000 - 1;  // period (in terms of ticks)
 
     // Set PWM mode 1 and enable preload
     switch (channel) {

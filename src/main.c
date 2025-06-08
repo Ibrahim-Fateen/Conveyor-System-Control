@@ -61,6 +61,7 @@ void display_message(char *message, uint8 row, uint8 col);
 void int_to_str(uint32 num, char *buffer);
 void find_motor_direction(void);
 void read_potentiometer(ADC_Mode mode);
+uint16 time_calc_ms(void);
 
 // globals
 uint8 emergency = 0;
@@ -153,7 +154,9 @@ void init_EXTI(void) {
 
 // program logic
 void measure_speed(void) {
-
+    // float pulse_width_s = time_calc_ms() / 1000.0;
+    // speed = 60 / pulse_width_s;
+    speed = time_calc_ms();
 }
 
 void control_motor(void) {
@@ -195,10 +198,10 @@ void poll_for_object(void) {
 }
 
 void display_information(void) {
-    display_message("SPEED:", 0, 0);
+    display_message("SPD:", 0, 0);
     // display speed (in rpm) up to 3 figures???
     int_to_str(speed, buffer);
-    display_message(buffer, 0, 6);
+    display_message(buffer, 0, 4);
     display_message("rpm", 0, 10);
 
     char direction_buffer[1];
@@ -296,4 +299,30 @@ void find_motor_direction(void) {
             control_motor();
         }
     }
+}
+
+uint16 time_calc_ms(void) {
+    static uint16 firstEdge = 0;
+    static uint16 firstCaptured = 0;
+    static uint16 time_ms = 0;
+
+    uint16 captured = ReadCapturedValue(IC_TIMER, CHANNEL_1);
+
+    if (!firstCaptured) {
+        firstEdge = captured;
+        firstCaptured = 1;
+    } else {
+        uint16 secondEdge = captured;
+
+        uint16 pulseWidth;
+        if (secondEdge >= firstEdge)
+            pulseWidth = secondEdge - firstEdge;
+        else
+            pulseWidth = (0xFFFF - firstEdge) + secondEdge + 1;
+
+        time_ms = pulseWidth;
+
+        firstCaptured = 0;
+    }
+    return time_ms ;
 }
