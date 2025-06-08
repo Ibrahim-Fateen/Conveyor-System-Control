@@ -156,7 +156,8 @@ void init_EXTI(void) {
 void measure_speed(void) {
     // float pulse_width_s = time_calc_ms() / 1000.0;
     // speed = 60 / pulse_width_s;
-    speed = time_calc_ms();
+    uint16 pusle_width = time_calc_ms();
+    if (pusle_width > 0) speed = pusle_width;
 }
 
 void control_motor(void) {
