@@ -11,6 +11,7 @@ set(INCLUDE_LIST ${INCLUDE_LIST}
         ${PROJECT_PATH}/LCD
         ${PROJECT_PATH}/TIMER
         ${PROJECT_PATH}/ADC
+        ${PROJECT_PATH}/STK
 )
 
 if (USE_HAL)

@@ -1,5 +1,6 @@
 #include "lcd.h"
 #include "GPIO.h"
+#include "STK.h"
 
 static void LCD_EnablePulse(void);
 static void LCD_Send4Bits(uint8 data);
@@ -7,10 +8,6 @@ static void LCD_SendCommand(uint8 cmd);
 
 static void LCD_Write(uint8 port, uint8 pin, uint8 val) {
     Gpio_WritePin(port, pin, val);
-}
-
-void delay_ms(uint32 ms) {
-    for (volatile uint32 i = 0; i < ms * 8000; i++); // crude loop delay
 }
 
 void LCD_Init(void) {
