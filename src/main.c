@@ -106,7 +106,11 @@ void main (void) {
         } else {
             measure_speed();
             read_potentiometer(adc_mode);
+
+            EXTI_Disable(2);
             find_motor_direction();
+            EXTI_Enable(2);
+
             if (motor_state == FORWARD) poll_for_object();
             display_information();
         }
