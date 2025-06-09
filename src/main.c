@@ -7,6 +7,7 @@
 #include "TIMER.h"
 #include "stm32f4xx.h"
 #include "ADC.h"
+#include "STK.h"
 
 #define EMERGENCY_BUTTON GPIO_A, 2  // set correct line number in exti
 #define RESET_BUTTON GPIO_A, 3  // set correct line number in exti
@@ -77,9 +78,12 @@ uint8 object_count_changed = TRUE;
 uint8 speed_changed = TRUE;
 uint8 direction_changed = TRUE;
 
+uint8 display_refresh_rate = 100;
+
 char buffer[10];
 
 void main (void) {
+    init_SysTick();
     init_RCC();
     LCD_Init();
     display_message("Program Starting...", 0, 0);
@@ -99,6 +103,8 @@ void main (void) {
     display_message("PWM:", 1, 8);
     display_message("%", 1, 15);
 
+    uint32 last_display_time = millis();
+
     // control_motor();
     while (1) {
         if (emergency) {
@@ -112,7 +118,10 @@ void main (void) {
             EXTI_Enable(2);
 
             if (motor_state == FORWARD) poll_for_object();
-            display_information();
+            if (millis() > last_display_time + display_refresh_rate) {
+                display_information();
+                last_display_time = millis();
+            }
         }
     }
 }
@@ -214,7 +223,7 @@ void poll_for_object(void) {
     uint8 current_pin_state = Gpio_ReadPin(OBJ_DETECTION_PIN);
     if (last_pin_state == HIGH && current_pin_state == LOW) {
         update_count();
-        for (int i = 0; i < 300000; i++) ;  // debouncing - might not be needed if update method has some delay
+        delay_ms(30);
     }
     last_pin_state = current_pin_state;
 }
