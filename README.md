@@ -12,7 +12,11 @@ This project simulates a smart conveyor system using an **ARM Cortex-M microcont
 
 ---
 ## Demo 
-https://github.com/user-attachments/assets/c3c6bd98-c2a6-46be-8ff9-10d210853d14
+
+
+https://github.com/user-attachments/assets/b7462c6d-b15e-4fa8-a70e-cd88189da368
+
+
 ---
 ## System Features & Components
 
@@ -50,7 +54,7 @@ https://github.com/user-attachments/assets/c3c6bd98-c2a6-46be-8ff9-10d210853d14
   - PWM (Pulse Width Modulation)  
   - GPIO (Digital input and LCD)  
   - EXTI (External Interrupts)  
-- **Display:** 16x2 or 20x4 Character LCD  
+- **Display:** 16x2 Character LCD  
 
 ---
 
