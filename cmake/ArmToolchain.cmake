@@ -3,9 +3,9 @@ set(CMAKE_SYSTEM_NAME Generic)
 set(CMAKE_SYSTEM_PROCESSOR arm)
 set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
 
-set(ARM_TOOLCHAIN_DIR "/Applications/ArmGNUToolchain/14.2.rel1/arm-none-eabi/bin")
+# set(ARM_TOOLCHAIN_DIR "/Applications/ArmGNUToolchain/14.2.rel1/arm-none-eabi/bin")
 # set(ARM_TOOLCHAIN_DIR "C:\\Program Files (x86)\\Arm GNU Toolchain arm-none-eabi\\14.2 rel1\\bin")
-# set(ARM_TOOLCHAIN_DIR "C:/Users/mosta/Downloads/arm-gnu-toolchain-14.2.rel1-mingw-w64-x86_64-arm-none-eabi/bin")
+set(ARM_TOOLCHAIN_DIR "C:/Users/mosta/Downloads/arm-gnu-toolchain-14.2.rel1-mingw-w64-x86_64-arm-none-eabi/bin")
 # set(ARM_TOOLCHAIN_DIR "C:\\Users\\joody\\Third Year\\Second Term\\Embedded Systems\\arm-gnu-toolchain-14.2.rel1-mingw-w64-x86_64-arm-none-eabi\\bin")
 
 if(MINGW OR CYGWIN OR WIN32)

@@ -64,7 +64,7 @@ void display_message(char *message, uint8 row, uint8 col);
 void int_to_str(uint32 num, char *buffer);
 void find_motor_direction(void);
 void read_potentiometer(ADC_Mode mode);
-uint32 time_calc_us(void);
+uint32 time_calc_ms(void);
 
 // globals
 uint8 emergency = FALSE;
@@ -181,9 +181,9 @@ void init_EXTI(void) {
 
 // program logic
 void measure_speed(void) {
-    uint32_t pulse_width_us = time_calc_us();
-    if (pulse_width_us != 0) {
-        uint32_t new_speed = 60000UL / pulse_width_us;
+    uint32_t pulse_width_ms = time_calc_ms();
+    if (pulse_width_ms != 0) {
+        uint32_t new_speed = 60000UL / pulse_width_ms; // to be in min *60 , as it i m so *1000  
         if (new_speed != speed) {
             update_speed(new_speed);
         }
@@ -231,19 +231,15 @@ void poll_for_object(void) {
 
 // interrupts
 void EXTI2_IRQHandler(void) {
-    if (EXTI_REGISTERS->EXTI_PR & (1 << 2)) {
         emergency = TRUE;
         motor_state = STOP;
         control_motor();
         EXTI_ClearPending(2);
-    }
 }
 
 void EXTI3_IRQHandler(void) {
-    if (EXTI_REGISTERS->EXTI_PR & (1 << 3)) {
         EXTI_ClearPending(3);
         SCB_Reset();
-    }
 }
 
 
@@ -333,7 +329,7 @@ void find_motor_direction(void) {
     }
 }
 
-uint32 time_calc_us(void) {
+uint32 time_calc_ms(void) {
     static uint16 firstEdge = 0;
     static uint8 firstCaptured = 0;
     static uint32 pulseWidth = 0;
@@ -347,7 +343,7 @@ uint32 time_calc_us(void) {
         uint16 secondEdge = captured;
 
         if (Timer_HasOverflow(IC_TIMER)) {
-            pulseWidth = (0xFFFF - firstEdge) + secondEdge + 1;
+            pulseWidth = (0xFFFFffff - firstEdge) + secondEdge + 1;
             Timer_ClearOverflow(IC_TIMER);
         } else
             pulseWidth = secondEdge - firstEdge;
